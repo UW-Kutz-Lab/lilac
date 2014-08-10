@@ -1,0 +1,13 @@
+#!/bin/bash
+_dirname="/final_data_outs/lilac-out."$1"-"$(date +%F)
+echo "Archiving output data in \$SCRATCH"$_dirname
+dirname=$SCRATCH$_dirname
+mkdir $dirname
+tar -cvzf $dirname/data.tgz $SCRATCH/lilac_output/*
+rm $SCRATCH/lilac_output/* 
+cp -r input_files $dirname/
+cp -r output $dirname/
+rm output/*.* 
+rm output/lilac_stdout/*
+cp nersc_submit_script $dirname/
+cp nersc_run_script $dirname/

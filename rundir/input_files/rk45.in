@@ -1,0 +1,5 @@
+!could have these be global, but this provides a nice example
+(rk45 integrator (double dt_min 1e-10) (@map relerr abserr))
+(double relerr 1e-4)
+(double dt_init .01)
+(double dt_max 0.1)
