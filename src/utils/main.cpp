@@ -20,6 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "engine/engine.h"
 using namespace std;
 int main(int argc, char** argv){
+    MPI_Init(&argc, &argv);
     std::ios_base::sync_with_stdio(false);
     std::string outfile;
     std::string index;
@@ -35,12 +36,15 @@ int main(int argc, char** argv){
         index="0";
     }
     srand(time(0));
-    engine e("infile.in", outfile, index);
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    //convert rank to string since item library expects a string
+    std::stringstream str;
+    str << rank;
+    std::cout << "Mpi program of size " << size << ", rank " << rank << std::endl;
+    engine e("infile.in", outfile, str.str());
     e.run();
-    //
-    //This cleans up the fftw memory
-    //not necessary since memory is freed on program exit
-    //but makes finding memory leaks far far easier
-    //fftw_cleanup();
+    MPI_Finalize();
     return 0;
 }

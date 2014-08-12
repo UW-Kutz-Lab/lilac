@@ -14,6 +14,7 @@ all: init integrator rhs controller engine objective simulation utils writer lis
 
 .PHONY: init
 init:
+	echo $(OMPI_CXX)
 	@mkdir -p ../bin
 	@mkdir -p ../lib
 

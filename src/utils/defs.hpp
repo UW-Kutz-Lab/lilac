@@ -22,10 +22,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 //Not every function uses the full interface
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
+extern "C"{
+#include <mpi.h>
+}
 #include <complex>
 #include <cstdlib>
 #include <iostream>
-#include <string>
 #include <vector>
 #include <memory>
 //some commands to help with effeciency
