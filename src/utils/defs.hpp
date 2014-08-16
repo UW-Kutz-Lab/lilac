@@ -23,7 +23,16 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
 extern "C"{
+//openmpi chooses which header to include based on whether
+//__cplusplus is defined or not. Since the C++ mpi is deprecated
+//and doesn't compile with openmpi anyways, I just use the C api
+//#ifdef __cplusplus
+//#undef __cplusplus
 #include <mpi.h>
+//#define __cplusplus
+//#else
+//#include <mpi.h>
+//#endif
 }
 #include <complex>
 #include <cstdlib>

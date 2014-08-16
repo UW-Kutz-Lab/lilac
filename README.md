@@ -5,7 +5,7 @@ This project provides a framework with which to analyze/control lasers, and more
 You can find advanced documentation [here](http://UW-Kutz-Lab.github.io/LILAC)
 
 Installation:
-This project depends on [ACML](http://developer.amd.com/tools-and-sdks/cpu-development/cpu-libraries/amd-core-math-library-acml/acml-downloads-resources/#download) (Not for Mac, see section on Mac install) and [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page), and the makefile has configurations for GCC, CLANG, and the Intel C++ Compiler. These are simple to install on Linux and Macintosh systems and each site provides installation instructions.
+This project depends on [ACML](http://developer.amd.com/tools-and-sdks/cpu-development/cpu-libraries/amd-core-math-library-acml/acml-downloads-resources/#download) (Not for Mac, see section on Mac install),  [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page), and [MPI](http://www.open-mpi.org). If installing openmpi, make sure that the C++ library is not enabled. the makefile has configurations for GCC, CLANG, and the Intel C++ Compiler. These are simple to install on Linux and Macintosh systems and each site provides installation instructions.
 
 Installation on Linux:
 
