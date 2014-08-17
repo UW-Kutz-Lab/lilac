@@ -22,23 +22,17 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 //Not every function uses the full interface
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
+#ifdef MPI
 extern "C"{
-//openmpi chooses which header to include based on whether
-//__cplusplus is defined or not. Since the C++ mpi is deprecated
-//and doesn't compile with openmpi anyways, I just use the C api
-//#ifdef __cplusplus
-//#undef __cplusplus
 #include <mpi.h>
-//#define __cplusplus
-//#else
-//#include <mpi.h>
-//#endif
 }
+#endif
 #include <complex>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <functional>
 //some commands to help with effeciency
 #ifdef ICC
 #define restr restrict
@@ -91,6 +85,10 @@ class _warning{
 };
 const static _fatal FATAL_ERROR;
 const static _warning WARNING;
+//don't add an exit procedure more than 2^31 times or else interger overflow will get you...
+int add_exit_procedure(const std::function<void()>& fnc);
+
+void remove_exit_procedure(int id);
 void err(std::string message, std::string function, std::string file, _fatal f);
 void err(std::string message, std::string function, std::string file, _warning w);
 void err(std::string message, std::string function, std::string file, const item* p, _fatal f);

@@ -28,7 +28,26 @@ extern "C"{
 #endif
 }
 
+std::map<int, std::function<void()>> exit_funcs;
 
+void do_exit(int param){
+    for(auto & fnc : exit_funcs){
+        fnc.second();
+    }
+#ifdef MPI
+    MPI_Abort(1, MPI_COMM_WORLD);
+#endif
+    exit(param);
+}
+
+int add_exit_procedure(const std::function<void()>& fnc){
+    static int exit_id=0;
+    exit_funcs.insert(std::pair<int, std::function<void()>>(exit_id, fnc));
+    return exit_id++;
+}
+void remove_exit_procedure(int id){
+    exit_funcs.erase(id);
+}
 /*!
  * Throws a fatal error, and prints the message, function name, and file name.
  * Afterwards, program exits.

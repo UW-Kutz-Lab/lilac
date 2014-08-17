@@ -20,7 +20,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "engine/engine.h"
 using namespace std;
 int main(int argc, char** argv){
+#ifdef MPI
     MPI_Init(&argc, &argv);
+#endif
     std::ios_base::sync_with_stdio(false);
     std::string outfile;
     std::string index;
@@ -38,6 +40,8 @@ int main(int argc, char** argv){
     srand(time(0));
     engine e("infile.in", outfile, index);
     e.run();
+#ifdef MPI
     MPI_Finalize();
+#endif
     return 0;
 }

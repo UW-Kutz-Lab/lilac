@@ -1,9 +1,9 @@
-#ifndef mpi_controller.h
-#define mpi_controller.h
-#include "utils/ptr_passer.hpp"
+#ifndef MPI_CONTROLLER_H
+#define MPI_CONTROLLER_H
+#include "utils/defs.hpp"
 #include <functional>
 #include <utility>
-#include <vector>
+#include <deque>
 /*!
  * This class provides an event-based controller for controlling other mpi nodes
  * It follows a master-worker type approce, where one core is constantly delegating
@@ -24,16 +24,30 @@ class mpi_controller{
                 //use lambda trickery so that callable objects will work here as well
                 this->event = [&in](void* v, size_t s, int i){
                     std::forward<Lambda>(in)(v, s, i);
-                }
+                };
             }
-        void send_blob(void* in, size_t dat_size, MPI_Datatype type, int target);
+    void send_blob(void* in, size_t size, MPI_Datatype type, int dest, int tag, MPI_Comm comm);
     private:
+        struct worker{
+            int id;
+            bool available;
+        };
+        struct mpi_job{
+            std::unique_ptr<char> data;
+            size_t size;
+            MPI_Datatype type;
+            int dest, tag;
+            MPI_Comm comm;
+            mpi_job(){}
+            mpi_job(void* dat, size_t dat_s, MPI_Datatype dtype, int _dest, int _tag, MPI_Comm _comm);
+        };
         //for now, a single event handler
         //however, messages will be tagged in the future to dispatch
         //to different handlers
         event_handler event;
-        //max size must be set by the underlying searcher when in use
-        max_size=-1;
-        std::vector<int> open_units;
+        std::vector<worker> workers;
+        std::vector<std::deque<mpi_job>> waiting_jobs;
+        //Destroys passed job
+        void send_job(mpi_job in);
 };
 #endif
