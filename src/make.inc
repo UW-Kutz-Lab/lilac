@@ -34,12 +34,13 @@ CPP=CC
 CFLAGS=-I../ -I./utils -std=c++11 -DGCC -DNDEBUG -DEIGEN_MPL2_ONLY -m64 -Ofast -march=native -mtune=native -pipe
 LFLAGS=  -Ofast -march=native -m64  $(FASTMATH)
 endif
-LD=$(CPP)
-#ifeq ($(CPP), CC)
+
+
+#ifeq ($(cpp), CC)
 #else
-#export OMPI_CXX=$(CPP)
-#CPP=mpicc
-#endif
+    #CPP=mpicc
+    #export OMPI_CXX=$(cpp)
+    #endif
 
 export LD=$(CPP)
 LIB_MAIN=../../lib
