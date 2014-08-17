@@ -45,6 +45,13 @@ engineimp::engineimp(const std::string& fname, const std::string& outname,
                     "engineimp::engineimp(std::string)", "engine/engine.cpp", FATAL_ERROR);
         }
         read(fstr);
+        add_exit_procedure([this](){
+                //This is only called on immediate abort,
+                //meaning the actual destructor won't be called later
+                //This is done to ensure resources are released properly and 
+                //any held data is written
+                this->~engineimp();
+                });
         datas_queued=0;
 #ifdef ASYNC_IO
         data_io_info dat_inf;

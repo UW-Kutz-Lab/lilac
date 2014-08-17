@@ -86,6 +86,14 @@ class _warning{
 const static _fatal FATAL_ERROR;
 const static _warning WARNING;
 //don't add an exit procedure more than 2^31 times or else interger overflow will get you...
+/*!Adds a procedure to be called upon program abortion. The functions are called in the order inserted,
+ * and the engine always inserts a destructor after initializing every class.
+ *
+ * Don't treat this function like a destructor, it is only for things that are run
+ * when a fatal error has occured (such as aborting mpi, writing held data, etc)
+ * not for calling delete on some pointers
+ *
+ */
 int add_exit_procedure(const std::function<void()>& fnc);
 
 void remove_exit_procedure(int id);

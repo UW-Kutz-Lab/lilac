@@ -62,7 +62,7 @@ void err(std::string message, std::string function, std::string file, _fatal f){
     std::cerr<<"A fatal error has occurred in function "<<function<<" in file "<<file<<
         std::endl<<"Error message is:"<<std::endl<<message<<
         std::endl<<"Exiting program"<<std::endl;
-    exit(1);
+    do_exit(1);
 }
 
 /*!
@@ -84,7 +84,7 @@ void err(std::string message, std::string function, std::string file, const item
         "\nError message is:\n"<<message<<"\n";
     p->print();
     std::cerr << "\nExiting program\n";
-    exit(1);
+    do_exit(1);
 }
 void err(std::string message, std::string function, std::string file, const item* p, _warning f){
     std::cerr<<"A non-fatal error has occurred in function "<<function<<" in file "<<file<<
@@ -97,7 +97,7 @@ void err(std::string message, std::string function, std::string file, std::share
         "\nError message is:\n"<<message<<"\n";
     p->print();
     std::cerr << "\nExiting program\n";
-    exit(1);
+    do_exit(1);
 }
 void err(std::string message, std::string function, std::string file, std::shared_ptr<item> p, _warning f){
     std::cerr<<"A non-fatal error has occurred in function "<<function<<" in file "<<file<<
