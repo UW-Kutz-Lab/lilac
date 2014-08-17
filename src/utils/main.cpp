@@ -36,14 +36,7 @@ int main(int argc, char** argv){
         index="0";
     }
     srand(time(0));
-    int rank, size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    //convert rank to string since item library expects a string
-    std::stringstream str;
-    str << rank;
-    std::cout << "Mpi program of size " << size << ", rank " << rank << std::endl;
-    engine e("infile.in", outfile, str.str());
+    engine e("infile.in", outfile, index);
     e.run();
     MPI_Finalize();
     return 0;
