@@ -35,7 +35,7 @@ void do_exit(int param){
         fnc.second();
     }
 #ifdef MPI
-    MPI_Abort(1, MPI_COMM_WORLD);
+    MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
     exit(param);
 }
