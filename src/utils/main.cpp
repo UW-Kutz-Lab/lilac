@@ -20,7 +20,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "engine/engine.h"
 using namespace std;
 int main(int argc, char** argv){
-    MPI_Init(&argc, &argv);
     std::ios_base::sync_with_stdio(false);
     std::string outfile;
     std::string index;
@@ -35,13 +34,8 @@ int main(int argc, char** argv){
         outfile = "data_out.out";
         index="0";
     }
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    std::stringstream strstr;
-    strstr << rank;
     srand(time(0));
-    engine e("infile.in", outfile, strstr.str());
+    engine e("infile.in", outfile, index);
     e.run();
-    MPI_Finalize();
     return 0;
 }

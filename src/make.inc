@@ -1,5 +1,5 @@
 export
-OS=
+OS=MAC
 MATH_LIB=-lacml
 MATH_DEF=
 ifeq ($(OS), MAC)
@@ -35,12 +35,15 @@ CFLAGS=-I../ -I./utils -std=c++11 -DGCC -DNDEBUG -DEIGEN_MPL2_ONLY -m64 -Ofast -
 LFLAGS=  -Ofast -march=native -m64  $(FASTMATH)
 endif
 
-
+ifeq ($(BRANCH), MPI)
 ifeq ($(cpp), CC)
 else
     CPP=mpicc -DMPI
     export OMPI_CXX=$(cpp)
-    endif
+endif
+else
+CPP=$(cpp)
+endif
 
 export LD=$(CPP)
 LIB_MAIN=../../lib
