@@ -1,20 +1,23 @@
 #include "mpi_controller.h"
 #include <thread>
 
-int mpi_controller::get_mpi_rank(){
+mpi_controller::mpi_controller(mpi_controller::event_handler event_h,
+        mpi_controller::work_checker work_c): event(event_h), more_work(work_c){
+    has_work=true;
+    event_thread = std::move(std::thread([this](){this->event_loop();}));
+}
+
+int mpi_controller::get_mpi_rank() const{
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     return rank;
 }
-int mpi_controller::get_mpi_size(){
+int mpi_controller::get_mpi_size() const{
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     return size;
 }
 
-void mpi_controller::register_handler(const mpi_controller::event_handler& in){
-    event = in;
-}
 
 //!Either places job in send queue or places in wait queue while destination is busy
 //!Destroys the passed job after successful send or addition to queue
@@ -70,6 +73,8 @@ void mpi_controller::send_recv(){
             ms_sleep_for=100;
         }
     }
+    has_work=false;
+    event_thread.join();
 }
 
 bool mpi_controller::async_recv(){
@@ -81,9 +86,9 @@ bool mpi_controller::async_recv(){
         work_done=true;
         std::unique_ptr<MPI_Request> req(new MPI_Request);
         int job_s=0;
-        MPI_Get_count(&status, MPI_BYTE, &job_s);
+        MPI_Get_count(&status, MPI_DOUBLE, &job_s);
 
-        mpi_job job(job_s, MPI_BYTE, status.MPI_SOURCE, status.MPI_TAG, MPI_COMM_WORLD);
+        mpi_job job(job_s, status.MPI_SOURCE, status.MPI_TAG, MPI_COMM_WORLD);
 
         MPI_Irecv(job.data.get(), job.size, job.type, job.dest, status.MPI_TAG, job.comm, req.get());
         active_recvs.insert(std::make_pair(std::move(req), std::move(job)));
@@ -95,12 +100,12 @@ bool mpi_controller::async_recv(){
 
 bool mpi_controller::handle_events(){
     bool work_done=false;
-    //This simple adds the recieved data to a new thread, 
+    //This simple adds the recieved data to a queue,
     //instead of actually passing to the event handler.
     //I could use a condition variable here, but just having the
     //handler poll for new data occasionally is so much easier and simpler
     //
-    //It is assumed that the events don't need top be instantly handled, as opposed
+    //It is assumed that the events don't need to be instantly handled, as opposed
     //to the async data writing operations
     for(auto iter = active_recvs.begin(); iter != active_recvs.end();){
         int flag=0;
@@ -124,9 +129,8 @@ bool mpi_controller::async_send(){
     while(!send_queue.empty()){
         work_done=true;
         mpi_job job = send_queue.pop_front();
+        
         //This allows us to keep the same address once scope is left
-        //sends are tagged with the type since I couldn't find a way
-        //to actually query the type being sent
         std::unique_ptr<MPI_Request> req(new MPI_Request);
         MPI_Isend(job.data.get(), job.size, job.type, job.dest, job.tag,
                 job.comm, req.get());
@@ -149,17 +153,15 @@ bool mpi_controller::async_send(){
 }
 
 bool mpi_controller::is_working(){
-    return std::find_if(workers.begin(), workers.end(),[](const worker& w){
-            return !w.available;
-            });
+    return std::any_of(workers.begin(), workers.end(),
+            [](const worker& w){return !w.available;});
 }
 
-
-mpi_controller::mpi_job::mpi_job(size_t dat_s, MPI_Datatype dtype, int _dest,
-        int _tag, MPI_Comm _comm, void* dat):
-    size(dat_s), type(dtype), dest(_dest), tag(_tag), comm(_comm){
+mpi_controller::mpi_job::mpi_job(size_t dat_s, int _dest,
+        int _tag, MPI_Comm _comm, double* dat): size(dat_s), type(MPI_DOUBLE),
+    dest(_dest), tag(_tag), comm(_comm){
         int dat_size;
-        MPI_Type_size(dtype, &dat_size);
+        MPI_Type_size(type, &dat_size);
         std::unique_ptr<char> data_tmp(new char[dat_size*dat_s]);
         data = std::move(data_tmp);
         if(dat){

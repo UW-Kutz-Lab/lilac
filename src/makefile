@@ -8,7 +8,7 @@
 
 include make.inc
 .PHONY: all
-all: init integrator rhs controller engine objective simulation utils writer lisp types #mpi
+all: init integrator rhs controller engine objective simulation utils writer lisp types mpi
 	$(LD)  ../lib/*.o -o ../bin/lilac $(LFLAGS) 
 	@cp ../bin/lilac ../rundir/lilac
 
