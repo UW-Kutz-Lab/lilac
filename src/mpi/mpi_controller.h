@@ -17,42 +17,43 @@
  */
 class mpi_controller{
     public:
-        //(data, size(data), sender_rank, sender_tag)
-        typedef std::function<void(void*, size_t, int, char)> event_handler;
-        int get_mpi_rank();
-        int get_mpi_size();
-        //registers a callable object as the event handler
-        void register_handler(const event_handler& in);
-        void send_blob(void* in, size_t size, MPI_Datatype type, int dest, MPI_Comm comm);
-    private:
-        struct worker{
-            int id;
-            bool available;
-        };
         struct mpi_job{
             std::unique_ptr<char> data;
             size_t size;
             MPI_Datatype type;
             int dest;
+            int tag;
             MPI_Comm comm;
             mpi_job(){}
-            mpi_job(size_t dat_s, MPI_Datatype dtype, int _dest, MPI_Comm _comm, void* dat=0);
+            mpi_job(size_t dat_s, MPI_Datatype dtype, int _dest, int _tag, MPI_Comm _comm, void* dat=0);
             bool operator <(const mpi_job& job) const{
                 return data.get() < job.data.get();
             }
         };
+        typedef std::function<void(mpi_job)> mpi_sender;
+        typedef std::function<bool(void)> work_checker;
+        typedef std::function<void(mpi_job, mpi_sender)> event_handler;
+        int get_mpi_rank();
+        int get_mpi_size();
+        //registers a callable object as the event handler
+        void register_handler(const event_handler& in);
+    private:
+        struct worker{
+            int id;
+            bool available;
+        };
+        bool has_work = true;
+        void event_loop();
         void send_recv();
         bool async_send();
         bool async_recv();
         bool handle_events();
-        void read();
-
-        bool waiting;
-
+        bool is_working();
         //for now, a single event handler
         //however, messages will be tagged in the future to dispatch
         //to different handlers
         event_handler event;
+        work_checker more_work;
         std::vector<worker> workers;
         //!holds jobs for a worker while worker is busy
         std::vector<threaded_queue<mpi_job>> waiting_jobs;

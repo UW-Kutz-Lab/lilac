@@ -4,6 +4,9 @@
 #include <deque>
 template<class T>
 class threaded_queue{
+    //Naively locking/unlocking on each call can cause some performance regression
+    //where something does many operations and could use just one lock.
+    //But this allows simpler and much safer access, as well as making data races rarer
     std::deque<T> queue;
     std::mutex data_lock;
     public:

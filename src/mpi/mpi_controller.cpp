@@ -1,20 +1,6 @@
 #include "mpi_controller.h"
 #include <thread>
-//enough to cover most bases for now
-//idk why mpi won't just let me query the sent datatype
-std::map<int, MPI_Datatype> int_to_mpi = {
-    {0, MPI_INT}, {1, MPI_FLOAT}, {2, MPI_CHAR}, {3, MPI_C_DOUBLE_COMPLEX},
-    {4, MPI_C_FLOAT_COMPLEX}, {5, MPI_DOUBLE}};
 
-static std::map<MPI_Datatype, int> __reverse_types(const std::map<int, MPI_Datatype>& m){
-    std::map<MPI_Datatype, int> rm;
-    for(const auto& pair : m){
-        rm[pair.second]=pair.first;
-    }
-    return rm;
-}
-
-std::map<MPI_Datatype, int> mpi_to_int = __reverse_types(int_to_mpi);
 int mpi_controller::get_mpi_rank(){
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -28,10 +14,6 @@ int mpi_controller::get_mpi_size(){
 
 void mpi_controller::register_handler(const mpi_controller::event_handler& in){
     event = in;
-}
-
-void mpi_controller::send_blob(void* in, size_t size, MPI_Datatype type, int dest, MPI_Comm comm){
-    send_job(mpi_job(size, type, dest, comm, in));
 }
 
 //!Either places job in send queue or places in wait queue while destination is busy
@@ -48,23 +30,45 @@ void mpi_controller::send_job(mpi_job in){
 
 
 
-
+//!Function for MPI event thread
+void mpi_controller::event_loop(){
+    auto sender_lambda = [this](mpi_job j){
+        this->send_job(std::move(j));
+    };
+    while(has_work){
+        int ms_sleep_for=100;
+        bool work = !recv_queue.empty();
+        if(work){
+            ms_sleep_for=100;
+            event(recv_queue.pop_front(), sender_lambda);
+        }
+        else{
+            ms_sleep_for = std::min(int(ms_sleep_for*1.5), 5000);
+            std::this_thread::sleep_for(std::chrono::milliseconds(ms_sleep_for));
+        }
+    }
+}
 //!Main MPI loop-only one can exist within a program.
 void mpi_controller::send_recv(){
-    static int ms_sleep_for=100;
-    //don't combine into one big statement to ensure compiler doesn't optimize away calls
-    bool work_done = async_recv();
-    work_done = handle_events() | work_done;
-    work_done = async_send() | work_done;
+    int ms_sleep_for=100;
+    //continue while-jobs are still being sent
+    //jobs are being recieved
+    //processes are currently working
+    //there is more work to be done
+    while(!send_queue.empty() || !recv_queue.empty() || is_working() || more_work()){
+        bool work_done = async_recv();
+        work_done = handle_events() | work_done;
+        work_done = async_send() | work_done;
 
-    //If there was nothing to send or recieve, sleep for a few seconds and try again
-    //This frees up the core for something else
-    if(!work_done){
-        ms_sleep_for = std::min(int(ms_sleep_for*1.5), 5000);
-        std::this_thread::sleep_for(std::chrono::milliseconds(ms_sleep_for));
-    }
-    else{
-        ms_sleep_for=100;
+        //If there was nothing to send or recieve, sleep for a few seconds and try again
+        //This frees up the core for something else
+        if(!work_done){
+            ms_sleep_for = std::min(int(ms_sleep_for*1.5), 5000);
+            std::this_thread::sleep_for(std::chrono::milliseconds(ms_sleep_for));
+        }
+        else{
+            ms_sleep_for=100;
+        }
     }
 }
 
@@ -76,12 +80,10 @@ bool mpi_controller::async_recv(){
     while(flag){
         work_done=true;
         std::unique_ptr<MPI_Request> req(new MPI_Request);
-        auto dtype = int_to_mpi[status.MPI_TAG];
-
         int job_s=0;
-        MPI_Get_count(&status, dtype, &job_s);
+        MPI_Get_count(&status, MPI_BYTE, &job_s);
 
-        mpi_job job(job_s, dtype, status.MPI_SOURCE, MPI_COMM_WORLD);
+        mpi_job job(job_s, MPI_BYTE, status.MPI_SOURCE, status.MPI_TAG, MPI_COMM_WORLD);
 
         MPI_Irecv(job.data.get(), job.size, job.type, job.dest, status.MPI_TAG, job.comm, req.get());
         active_recvs.insert(std::make_pair(std::move(req), std::move(job)));
@@ -126,7 +128,7 @@ bool mpi_controller::async_send(){
         //sends are tagged with the type since I couldn't find a way
         //to actually query the type being sent
         std::unique_ptr<MPI_Request> req(new MPI_Request);
-        MPI_Isend(job.data.get(), job.size, job.type, job.dest, mpi_to_int[job.type],
+        MPI_Isend(job.data.get(), job.size, job.type, job.dest, job.tag,
                 job.comm, req.get());
         active_sends.insert(std::make_pair(std::move(req), std::move(job)));
     }
@@ -146,13 +148,19 @@ bool mpi_controller::async_send(){
     return work_done;
 }
 
+bool mpi_controller::is_working(){
+    return std::find_if(workers.begin(), workers.end(),[](const worker& w){
+            return !w.available;
+            });
+}
+
 
 mpi_controller::mpi_job::mpi_job(size_t dat_s, MPI_Datatype dtype, int _dest,
-        MPI_Comm _comm, void* dat):
-    size(dat_s), type(dtype), dest(_dest), comm(_comm){
+        int _tag, MPI_Comm _comm, void* dat):
+    size(dat_s), type(dtype), dest(_dest), tag(_tag), comm(_comm){
         int dat_size;
         MPI_Type_size(dtype, &dat_size);
-        std::unique_ptr<char> data_tmp(new char[dat_size*dat_s+2*MPI_BSEND_OVERHEAD]);
+        std::unique_ptr<char> data_tmp(new char[dat_size*dat_s]);
         data = std::move(data_tmp);
         if(dat){
             char* cdat = (char*)dat;
