@@ -1,5 +1,5 @@
 export
-OS=MAC
+OS=
 MATH_LIB=-lacml
 MATH_DEF=
 ifeq ($(OS), MAC)

@@ -1,4 +1,5 @@
 #include "mpi_controller.h"
+#include <algorithm>
 #include <thread>
 
 mpi_controller::mpi_controller(mpi_controller::event_handler event_h,
