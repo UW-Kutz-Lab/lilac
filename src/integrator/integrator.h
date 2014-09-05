@@ -52,6 +52,7 @@ class integrator:public item_dim, public vartype{
          * If this isn't overridden, expect an infinite loop
          */
         virtual int integrate(ptr_passer u, double t0, double tf);
+        virtual
         //!Blank destructor for integrator
         virtual ~integrator(){}
 };
